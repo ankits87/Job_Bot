@@ -192,7 +192,7 @@ def _run_scraper_subprocess(
         )
         logger.info(f"Scraper exit={result.returncode} loc={location} start={start} ea={easy_apply}")
         if result.stderr:
-            logger.warning(f"Scraper stderr: {result.stderr[:500]}")
+            logger.warning(f"Scraper stderr FULL:\n{result.stderr}")
         output = result.stdout.strip()
         if not output:
             return []
