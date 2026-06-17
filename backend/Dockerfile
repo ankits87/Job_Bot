@@ -1,13 +1,21 @@
-FROM mcr.microsoft.com/playwright/python:v1.60.0-jammy
+FROM python:3.10-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc libpq-dev curl wget gnupg ca-certificates \
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
+    libxdamage1 libxfixes3 libxrandr2 libgbm1 libasound2 \
+    libpango-1.0-0 libcairo2 libatspi2.0-0 libx11-6 \
+    libxext6 libxcb1 fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt && \
+    playwright install chromium
 
 COPY backend/ .
 
-RUN mkdir -p /app/uploads && chmod +x /app/start.sh
-
-CMD ["/app/start.sh"]
+RUN mkdir -p /app/uploads
