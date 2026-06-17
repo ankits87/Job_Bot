@@ -18,4 +18,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY backend/ .
 
-RUN mkdir -p /app/uploads
+RUN mkdir -p /app/uploads && chmod +x /app/start.sh
