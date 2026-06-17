@@ -7,9 +7,11 @@ settings = get_settings()
 
 app = FastAPI(title="LinkedIn Job Automator", version="0.1.0")
 
-allowed_origins = [settings.frontend_url]
-if settings.environment == "development":
-    allowed_origins += ["http://localhost:5173", "http://localhost:3000"]
+allowed_origins = [
+    settings.frontend_url,
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
 
 app.add_middleware(
     CORSMiddleware,
