@@ -3,66 +3,51 @@ import api from "../api/client";
 
 interface Application {
   id: number;
-  job: { title: string; company: string; location: string; url: string; is_easy_apply: boolean };
+  job: { title: string; company: string; location: string; url: string };
   status: "pending" | "applying" | "applied" | "failed" | "manual_required";
   ats_score_before: number;
   ats_score_after: number;
   applied_at: string | null;
-  error_message: string | null;
 }
-
-const STATUS_META: Record<Application["status"], { label: string; color: string; icon: string }> = {
-  pending:         { label: "Queued",           color: "text-gray-400 bg-gray-800 border-gray-700",          icon: "⏳" },
-  applying:        { label: "Applying…",        color: "text-blue-400 bg-blue-900/30 border-blue-700",        icon: "🔄" },
-  applied:         { label: "Applied",          color: "text-green-400 bg-green-900/30 border-green-700",     icon: "✅" },
-  failed:          { label: "Failed",           color: "text-red-400 bg-red-900/30 border-red-700",           icon: "❌" },
-  manual_required: { label: "Manual Required",  color: "text-yellow-400 bg-yellow-900/30 border-yellow-700",  icon: "⚠️" },
-};
 
 export default function ApplicationStatus() {
   const queryClient = useQueryClient();
+
+  const { data: applications = [], isLoading } = useQuery<Application[]>({
+    queryKey: ["applications"],
+    queryFn: async () => (await api.get("/applications")).data,
+  });
 
   const markApplied = useMutation({
     mutationFn: (id: number) => api.post(`/applications/${id}/mark-applied`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["applications"] }),
   });
 
-  const { data: applications = [], isLoading } = useQuery<Application[]>({
-    queryKey: ["applications"],
-    queryFn: async () => (await api.get("/applications")).data,
-    refetchInterval: (query) => {
-      const data = query.state.data as Application[] | undefined;
-      const hasActive = data?.some((a) => a.status === "applying" || a.status === "pending");
-      return hasActive ? 3000 : false;
-    },
-  });
-
-  const counts = applications.reduce((acc, a) => {
-    acc[a.status] = (acc[a.status] ?? 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const applied    = applications.filter((a) => a.status === "applied");
+  const notYet     = applications.filter((a) => a.status !== "applied");
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Applications</h1>
-          <p className="text-gray-400 text-sm mt-1">Live status of all submitted applications</p>
+          <p className="text-gray-400 text-sm mt-1">Track jobs you've applied to on LinkedIn</p>
         </div>
         <a href="/jobs" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
           + Find more jobs
         </a>
       </div>
 
-      {/* Summary bar */}
       {applications.length > 0 && (
-        <div className="grid grid-cols-4 gap-3">
-          {(["applied", "applying", "pending", "failed"] as Application["status"][]).map((s) => (
-            <div key={s} className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-white">{counts[s] ?? 0}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{STATUS_META[s].label}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 gap-3 max-w-xs">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-green-400">{applied.length}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Applied</p>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-white">{notYet.length}</p>
+            <p className="text-xs text-gray-500 mt-0.5">To Apply</p>
+          </div>
         </div>
       )}
 
@@ -79,47 +64,50 @@ export default function ApplicationStatus() {
         </div>
       ) : (
         <div className="space-y-3">
-          {applications.map((app) => {
-            const meta = STATUS_META[app.status];
+          {[...notYet, ...applied].map((app) => {
+            const isApplied = app.status === "applied";
             return (
-              <div key={app.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex items-center gap-4">
-                <span className="text-xl shrink-0">{meta.icon}</span>
+              <div key={app.id} className={`bg-gray-900 border rounded-2xl p-5 flex items-center gap-4 transition-colors ${isApplied ? "border-green-900" : "border-gray-800"}`}>
+                <span className="text-xl shrink-0">{isApplied ? "✅" : "📋"}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-white font-medium truncate">{app.job.title}</p>
                   <p className="text-gray-400 text-sm">{app.job.company} · {app.job.location}</p>
-                  {app.error_message && (
-                    <p className="text-red-400 text-xs mt-1">{app.error_message}</p>
+                  {app.applied_at && (
+                    <p className="text-gray-600 text-xs mt-0.5">Applied {new Date(app.applied_at).toLocaleDateString()}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right hidden sm:block">
-                    <p className="text-xs text-gray-500">ATS</p>
+                    <p className="text-xs text-gray-500">ATS score</p>
                     <p className="text-sm">
                       <span className="text-gray-500">{Math.round(app.ats_score_before * 100)}%</span>
                       <span className="text-gray-600 mx-1">→</span>
                       <span className="text-green-400 font-semibold">{Math.round(app.ats_score_after * 100)}%</span>
                     </p>
                   </div>
-                  <span className={`text-xs border px-3 py-1 rounded-full font-medium ${meta.color}`}>
-                    {meta.label}
-                  </span>
-                  {app.status === "manual_required" || app.status === "failed" ? (
-                    <div className="flex flex-col items-end gap-1.5">
-                      <a href={app.job.url} target="_blank" rel="noopener noreferrer"
-                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors whitespace-nowrap">
-                        Apply manually →
+                  {isApplied ? (
+                    <span className="text-xs border px-3 py-1 rounded-full font-medium text-green-400 bg-green-900/30 border-green-700">
+                      Applied
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={app.job.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap"
+                      >
+                        Apply on LinkedIn ↗
                       </a>
-                      {app.status === "manual_required" && (
-                        <button
-                          onClick={() => markApplied.mutate(app.id)}
-                          disabled={markApplied.isPending}
-                          className="text-xs bg-green-900/40 border border-green-700 text-green-400 hover:bg-green-800/50 disabled:opacity-50 px-3 py-1 rounded-full transition-colors whitespace-nowrap"
-                        >
-                          {markApplied.isPending ? "Saving…" : "Mark as Applied"}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => markApplied.mutate(app.id)}
+                        disabled={markApplied.isPending}
+                        className="text-xs border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 disabled:opacity-50 px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap"
+                      >
+                        Mark applied
+                      </button>
                     </div>
-                  ) : null}
+                  )}
                 </div>
               </div>
             );

@@ -7,8 +7,6 @@ import ResumeUpload from "./pages/ResumeUpload";
 import JobList from "./pages/JobList";
 import JobConfirmation from "./pages/JobConfirmation";
 import ApplicationStatus from "./pages/ApplicationStatus";
-import Referrals from "./pages/Referrals";
-import Connections from "./pages/Connections";
 import Profile from "./pages/Profile";
 
 export default function App() {
@@ -23,14 +21,12 @@ export default function App() {
         <Route path="/resume" element={<ResumeUpload />} />
         <Route path="/onboarding" element={<Onboarding />} />
 
-        {/* Main app with sidebar layout */}
+        {/* Main app with layout */}
         <Route element={<Layout />}>
           <Route path="/profile" element={<Profile />} />
           <Route path="/jobs" element={<JobList />} />
           <Route path="/confirm" element={<JobConfirmation />} />
           <Route path="/applications" element={<ApplicationStatus />} />
-          <Route path="/referrals/:company" element={<Referrals />} />
-          <Route path="/connections/:jobId" element={<Connections />} />
         </Route>
       </Route>
 
