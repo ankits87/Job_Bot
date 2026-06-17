@@ -136,7 +136,7 @@ with sync_playwright() as pw:
                     "company": company,
                     "location": loc,
                     "url": href,
-                    "is_easy_apply": easy_apply,
+                    "is_easy_apply": False,
                     "jd_text": "",
                     "posted_at": posted_at,
                 })
