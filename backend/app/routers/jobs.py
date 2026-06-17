@@ -117,8 +117,11 @@ async def scan_jobs(user: User = Depends(get_current_user), db: AsyncSession = D
 
     saved = []
     for j in ranked:
-        existing = await db.execute(select(Job).where(Job.url == j["url"]))
-        if existing.scalar_one_or_none():
+        result = await db.execute(select(Job).where(Job.url == j["url"]))
+        existing = result.scalar_one_or_none()
+        if existing:
+            existing.is_easy_apply = j.get("is_easy_apply", False)
+            existing.relevance_score = j.get("relevance_score") or existing.relevance_score
             continue
         job = Job(
             title=j["title"],
