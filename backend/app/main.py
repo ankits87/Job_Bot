@@ -2,10 +2,22 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.routers import auth, onboarding, resume, jobs, applications, network, setup
+from alembic.config import Config
+from alembic import command
 
 settings = get_settings()
 
 app = FastAPI(title="LinkedIn Job Automator", version="0.1.0")
+
+
+@app.on_event("startup")
+async def run_migrations():
+    try:
+        alembic_cfg = Config("/app/alembic.ini")
+        alembic_cfg.set_main_option("script_location", "/app/alembic")
+        command.upgrade(alembic_cfg, "head")
+    except Exception as e:
+        print(f"Migration warning: {e}")
 
 allowed_origins = [
     settings.frontend_url,
