@@ -30,4 +30,4 @@ app.include_router(network.router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    return {"status": "ok", "frontend_url": settings.frontend_url, "environment": settings.environment}
